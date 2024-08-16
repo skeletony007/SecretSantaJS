@@ -1,0 +1,2 @@
+class `secretSanta` maybe replace `shuffledNames` with names sorted by
+`recipientRepeatFrequency` in decreasing order.
