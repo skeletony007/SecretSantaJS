@@ -1,2 +1,2 @@
-class `secretSanta` maybe replace `shuffledNames` with names sorted by
+class `SecretSanta` maybe replace `shuffledNames` with names sorted by
 `recipientRepeatFrequency` in decreasing order.

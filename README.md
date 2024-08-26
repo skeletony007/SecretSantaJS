@@ -13,144 +13,51 @@
 
 Simple Secret Santa System that is random in just the right way. 🎄
 
-This project consists of JavaScript classes Hat and
-[SecretSanta](#secretsanta-class), which together create Secret Santa pairings.
-
-# Usage
-
-1. Retrieve the output state from the previous year’s event.
-2. Pass this state as the input to the `SecretSanta` constructor.
-3. Use the `draw()` method to generate a new set of Secret Santa pairs for the
-   current year.
-
-## Example
-
-```javascript
-const lastYearState = // Retrieve last year's state from storage
-const secretSanta = new SecretSanta(lastYearState);
-
-const thisYearPairs = secretSanta.draw();
-
-const thisYearState = secretSanta.toJSON();
-// Save thisYearState as initial the state for next year
-```
-
-# SecretSanta Class
-
-The `SecretSanta` class is designed to be used with an input state that
-reflects the state of the previous year’s Secret Santa event
-(`secretSanta.toJSON()`).
-
-## SecretSanta Constructor
+# Example
 
 ```javascript
 const secretSanta = new SecretSanta(state);
+
+/**
+ * List of participant names in Secret Santa game.
+ * @type {string[]}
+ */
+const names = [];
+
+for (let name of names) secretSanta.addParticipant(name);
+
+const pairs = secretSanta.draw();
+
+state = secretSanta.toJSON();
+
+for (let pair of pairs) console.log(pair);
 ```
 
-> [!TIP]
-> Keys in the input state are accessed without altering other keys, so feel
-> free to store other information in state. It will still be there on the other
-> side ;)  (`secretSanta.toJSON()`)
+# State
 
-[JSON Schema] for input state:
+State returned by `SecretSanta.toJSON()` matches [JSON Schema]:
 
 ```json
-{
-  "people": [
-    {
-      "name": "string",
+[
+  {
+    "name": "string",
+    "stats": {
+      "meanRecipientWeight": "number",
+      "previousRecipient": "string",
+      "recipientRepeatFrequency": "number",
       "recipients": [
         {
           "name": "string",
           "weight": "number",
           "frequency": "number"
         }
-      ],
-      "stats": {
-        "recipientRepeatFrequency": "number",
-        "previousRecipient": "string"
-      }
+      ]
     }
-  ]
-}
+  }
+]
 ```
 
-Example initial input state JSON:
-
-```json
-{
-  "people": [
-    {
-      "name": "John",
-      "recipients": [
-        {"name": "Paul", "weight": 1, "frequency": 0},
-        {"name": "George", "weight": 1, "frequency": 0},
-        {"name": "Ringo", "weight": 1, "frequency": 0}
-      ],
-      "stats": {
-        "recipientRepeatFrequency": 0,
-        "previousRecipient": ""
-      }
-    },
-    {
-      "name": "Paul",
-      "recipients": [
-        {"name": "John", "weight": 1, "frequency": 0},
-        {"name": "George", "weight": 1, "frequency": 0},
-        {"name": "Ringo", "weight": 1, "frequency": 0}
-      ],
-      "stats": {
-        "recipientRepeatFrequency": 0,
-        "previousRecipient": ""
-      }
-    },
-    {
-      "name": "George",
-      "recipients": [
-        {"name": "John", "weight": 1, "frequency": 0},
-        {"name": "Paul", "weight": 1, "frequency": 0},
-        {"name": "Ringo", "weight": 1, "frequency": 0}
-      ],
-      "stats": {
-        "recipientRepeatFrequency": 0,
-        "previousRecipient": ""
-      }
-    },
-    {
-      "name": "Ringo",
-      "recipients": [
-        {"name": "John", "weight": 1, "frequency": 0},
-        {"name": "Paul", "weight": 1, "frequency": 0},
-        {"name": "George", "weight": 1, "frequency": 0}
-      ],
-      "stats": {
-        "recipientRepeatFrequency": 0,
-        "previousRecipient": ""
-      }
-    }
-  ]
-}
-```
-
-# Explanation
-
-Each time `secretSanta.draw()` is executed, the Secret Santa process unfolds as
-follows:
-
-1. **Participant Queue Formation:** 
-   - The participants (`state.people`) are shuffled into a random order,
-     creating a queue for recipient assignment.
-2. **Hat Initialization:** 
-   - Each participant is assigned a "hat" containing all potential recipients
-     (`state.people[i].recipients`). The likelihood of selecting each recipient
-     is based on their corresponding weight using `recipient.weight`.
-3. **Recipient Assignment:**
-   - Participants are processed sequentially from the queue. Each participant
-     draws a recipient from their "hat".
-   - The drawn recipient is then removed using `hat.delete()` from the "hats"
-     of all remaining participants to ensure uniqueness.
-   - For all recipients not chosen, their weights are increased by the mean
-     recipient weight for the current participant, promoting diversity in
-     future draws.
+> [!TIP]
+> Store the state after each draw and use it in subsequent runs.
 
 [JSON Schema]: https://json-schema.org

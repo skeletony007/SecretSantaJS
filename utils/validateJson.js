@@ -1,9 +1,9 @@
 /**
+ * Simple way to validate JSON using a JSON Schema.
  * @function
  * @param {JSON} json The JSON to be validated.
  * @param {JSON} schema The JSON Schema to be validated against.
  * @returns {boolean} True or throws an error.
- * @description Simple way to validate JSON using a JSON Schema.
  * @link https://en.wikipedia.org/wiki/JSON#JSON_Schema
  * @link https://json-schema.org
  */
