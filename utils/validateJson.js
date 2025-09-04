@@ -1,51 +1,104 @@
 /**
- * Simple way to validate JSON using a JSON Schema.
+ * Simple way to validate JSON using minimal JSON Schema inspired by JSON
+ * Schema (https://json-schema.org).
  * @function
- * @param {JSON} json The JSON to be validated.
+ * @param {JSON} object The JSON to be validated.
  * @param {JSON} schema The JSON Schema to be validated against.
  * @returns {boolean} True or throws an error.
  * @link https://en.wikipedia.org/wiki/JSON#JSON_Schema
  * @link https://json-schema.org
  */
-function validateJson(json, schema) {
+function validateJson(object, schema) {
   const errors = new Array();
+  const errorsLengthLimit = 30;
 
-  function validate(obj, sch, path = '') {
-    for (const key in sch) {
-      const schemaType = sch[key];
-      const value = obj[key];
-      const currentPath = path ? `${path}.${key}` : key;
+  function error(message) {
+    errors.push(`Validate JSON ${message}`);
+  }
 
-      if (!obj.hasOwnProperty(key)) {
-        if (schemaType.required) {
-          errors.push(`Validating JSON | Missing key: ${currentPath}`);
+  const validJsonSchemaTypes = new Set(['object', 'array', 'string', 'number', 'null']);
+
+  function throwUnknownType(typeName) {
+    error(`encountered unknown ${typeName} type (stopping)`);
+    throw new Error(errors.join('\n'));
+  }
+
+  /**
+   * $ node # Intuitively [] should be 'array'
+   * > typeof []
+   * 'object'
+   **/
+  function getJsonSchemaTypeFromObject(object) {
+    if (Array.isArray(object)) return 'array';
+    if (object === null) return 'null';
+    const javascriptType = typeof object;
+    if (!validJsonSchemaTypes.has(javascriptType)) throwUnknownType();
+    return javascriptType;
+  }
+
+  function getJsonSchemaTypeFromSchema(schema) {
+    const schemaTypeFromObject = getJsonSchemaTypeFromObject(schema);
+    const schemaTypeFromSchema = schemaTypeFromObject === 'string' ? schema : schemaTypeFromObject;
+    if (!validJsonSchemaTypes.has(schemaTypeFromSchema)) throwUnknownType();
+    return schemaTypeFromSchema;
+  }
+
+  function validate(object, schema, path = '.') {
+    if (errors.length >= errorsLengthLimit) {
+      error(`number of errors exceeds ${errorsLengthLimit} (stopping)`);
+      throw new Error(errors.join('\n'));
+    }
+
+    function pathError(path, message) {
+      error(`key ${path} ${message}`);
+    }
+
+    const objectType = getJsonSchemaTypeFromObject(object);
+    const schemaType = getJsonSchemaTypeFromSchema(schema);
+
+    function typeError() {
+      pathError(path, `only accepts type ${schemaType}`);
+    }
+
+    switch (schemaType) {
+      case 'object':
+        if (objectType !== 'object') {
+          typeError();
+          break;
         }
-        continue;
-      }
-
-      if (schemaType === null && typeof value === 'object' && !Array.isArray(value) && value !== null) {
-        errors.push(`Validating JSON | Key ${currentPath} is not allowed to be null, but is: ${JSON.stringify(value)}`);
-      } else if (typeof schemaType === 'string') {
-        if (typeof value !== schemaType && !(schemaType === 'null' && value === null)) {
-          errors.push(`Validating JSON | Key ${currentPath} is of type ${typeof value}, expected ${schemaType}`);
-        }
-      } else if (typeof schemaType === 'object' && !Array.isArray(schemaType)) {
-        validate(value, schemaType, currentPath);
-      } else if (Array.isArray(schemaType)) {
-        if (!Array.isArray(value)) {
-          errors.push(`Validating JSON | Key ${currentPath} is expected to be an array`);
-        } else {
-          for (let i = 0; i < value.length; i++) {
-            validate(value[i], schemaType[0], `${currentPath}[${i}].`);
+        if (schema === 'object') break;
+        for (const key in schema) {
+          if (!object.hasOwnProperty(key)) {
+            pathError(`${path}.${key}`, 'missing!');
+            continue;
           }
+
+          validate(object[key], schema[key], path === '.' ? `.${key}` : `${path}.${key}`);
         }
-      } else {
-        errors.push(`Validating JSON | Unsupported schema definition for key ${currentPath}`);
-      }
+        break;
+
+      case 'array':
+        if (objectType !== 'array') {
+          typeError();
+          break;
+        }
+        if (schema === 'array') break;
+        for (let i = 0; i < object.length; i++) {
+          validate(object[i], schema[0], `${path}[${i}]`);
+        }
+        break;
+
+      case objectType:
+        // do nothing
+        break;
+
+      default:
+        typeError();
+        break;
     }
   }
 
-  validate(json, schema);
+  validate(object, schema);
 
   if (errors.length > 0) {
     throw new Error(errors.join('\n'));
